@@ -14,18 +14,18 @@ Clone project về với lệnh
 
 Python 3.5 trở lên, bao gồm công cụ cài đặt __pip__
 
-#### Virtualenv
+#### Virtual enviroment
 
 - Windows:
 
 ```
-    pip install virtualenv
+    pip install venv
 ```
 
 - Linux/Unix:
 
 ```
-    python3 -m pip install virtualenv
+    python3 -m pip install venv
 ```
 
 #### Cài đặt môi trường
@@ -35,13 +35,13 @@ __Bước 1:__ Trong thư mục chứa mã nguồn, tạo môi trường độc 
 - Windows:
 
 ```
-    virtualenv env
+    python -m venv env
 ```
 
 - Linux/Unix:
 
 ```
-    python3 -m virtualenv env
+    python3 -m venv env
 ```
 
 __Bước 2:__ Kích hoạt môi trường
