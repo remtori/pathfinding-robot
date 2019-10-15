@@ -1,11 +1,8 @@
 {
-    "python.linting.pylintEnabled": true,
     "python.linting.enabled": true,
     "python.terminal.activateEnvironment": true,
-    "python.linting.pylintArgs": [
-        "--extension-pkg-whitelist=PyQt5",
-        "--disable=all", 
-        "--enable=F,E,unreachable,duplicate-key,unnecessary-semicolon,global-variable-not-assigned,unused-variable,binary-op-exception,bad-format-string,anomalous-backslash-in-string,bad-open-mode"
-    ],
-    "python.pythonPath": "env/bin/python"
+    "python.envFile": "${workspaceFolder}/.env",
+    "python.pythonPath": "env/bin/python",
+    "python.linting.flake8Enabled": true,
+    "python.linting.pylintEnabled": false
 }

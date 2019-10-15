@@ -1,3 +1,5 @@
 PyOpenGL==3.1.0
 PyOpenGL-accelerate==3.1.0
 PyQt5==5.13.1
+PyQt5-sip==12.7.0
+numpy==1.17.2

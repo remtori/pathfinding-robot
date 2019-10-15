@@ -19,7 +19,7 @@ Python 3.5 trở lên, bao gồm công cụ cài đặt __pip__
 - Windows:
 
 ```
-    pip install venv
+    python -m pip install venv
 ```
 
 - Linux/Unix:
@@ -60,9 +60,16 @@ __Bước 2:__ Kích hoạt môi trường
 
 __Bước 3:__ Cài các thư viện cần sử dụng.
 
+- Windows:
 
 ```
-    pip install -r requirements.txt
+    python -m pip install -r requirements.txt
+```
+
+- Linux/Unix:
+
+```
+    python3 -m pip install -r requirements.txt
 ```
 
 ## Chương trình
@@ -80,4 +87,16 @@ python src/main.py
 ```
 python3 src/main.py
 ```
+
+#### Note
+
+Nếu dùng VSCode có thể bấm `Ctrl + Shift + B` để chạy hoặc `F5` để Debug
+
+#### Links
+
+https://www.learnpyqt.com/courses/start/basic-widgets/
+
+https://stackoverflow.com/questions/15829782/how-to-restrict-user-input-in-qlineedit-in-pyqt
+
+http://www.angelfire.com/linux/myp/ConvexPolRas/ConvexPolRas.html
 
