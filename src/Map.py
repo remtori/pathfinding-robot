@@ -8,7 +8,7 @@ Point = Tuple[int, int]
 AIR     = False
 WALL    = True
 
-delta = [
+DELTA = [
     (1, 0, 1), (0, 1, 1), (-1, 0, 1), (0, -1, 1),
     (1, 1, 1.5), (1, -1, 1.5), (-1, 1, 1.5), (-1, -1, 1.5)
 ]
@@ -51,10 +51,10 @@ class Map:
     def getNextPoints(self, point: Point):
         result = []
         x, y = point
-        for dx, dy, cost in delta:
+        for dx, dy, cost in DELTA:
             aX, aY = x + dx, y + dy
             if self[aX, aY] != WALL:
-                result.append((aX, aY, cost))
+                result.append(((aX, aY), cost))
 
         return result
 

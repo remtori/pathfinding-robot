@@ -1,5 +1,7 @@
-from PyQt5.QtGui import QPainter, QColor
+from PyQt5.QtGui import QPainter, QColor, QPen
 from PyQt5.QtWidgets import QWidget
+from PyQt5.QtCore import Qt
+import math
 
 from controller import controller
 from Map import WALL
@@ -63,6 +65,8 @@ class RenderWindow(QWidget):
         for y in range(0, h + 2, gs):
             qp.drawLine(0, y, w, y)
 
+        self.drawPath(controller.getPfPaths())
+
         qp.end()
 
     def drawPoints(self, points, color):
@@ -75,3 +79,37 @@ class RenderWindow(QWidget):
                 p[1] * gs,
                 gs, gs, c
             )
+
+    def drawPath(self, paths):
+        qp = self.painter
+
+        pen = QPen(QColor('#000000'))
+        pen.setStyle(Qt.DashLine)
+        pen.setDashPattern([10, 4])
+
+        qp.setPen(pen)
+
+        gs = controller.gridSize
+
+        for path in paths:
+            for i in range(len(path) - 1):
+                a = path[i]
+                b = path[i + 1]
+                vx, vy = b[0] - a[0], b[1] - a[1]
+                d = math.sqrt(vx * vx + vy * vy)
+
+                # Chuyển về vector đơn vị
+                vx = vx / d
+                vy = vy / d
+                # Xoay 90 độ
+                vx, vy = -vy, vx
+
+                vx = vx * 2 + gs / 2
+                vy = vy * 2 + gs / 2
+
+                qp.drawLine(
+                    a[0] * gs + vx, a[1] * gs + vy,
+                    b[0] * gs + vx, b[1] * gs + vy
+                )
+
+        qp.setPen(Qt.SolidLine)

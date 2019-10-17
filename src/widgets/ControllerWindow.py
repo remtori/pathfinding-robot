@@ -86,37 +86,27 @@ class ControllerWindow(QWidget):
             0, QFormLayout.FieldRole, self.algorithmChoice
         )
 
-        def setGridSize(v):
-            controller.gridSize = int(v)
-
         self.labelGS, self.gridSize = self._createLineInput(
             1, "Độ rộng mỗi ô", "20",
             QIntValidator(1, 9999999),
-            setGridSize,
             self.wFormLayout, self.wFormLayoutWidget
         )
 
         self.labelWidth, self.inpWidth = self._createLineInput(
             2, "Số ô ngang", "20",
             QIntValidator(1, 9999999),
-            controller.setMapWidth,
             self.wFormLayout, self.wFormLayoutWidget
         )
 
         self.labelHeight, self.inpHeight = self._createLineInput(
             3, "Số ô dọc", "20",
             QIntValidator(1, 9999999),
-            controller.setMapHeight,
             self.wFormLayout, self.wFormLayoutWidget
         )
 
-        def setDelayTime(v):
-            controller.delayTime = int(v)
-
         self.labelDelayTime, self.delayTime = self._createLineInput(
-            4, "Thời gian đợi", "100",
+            4, "Thời gian đợi", "50",
             QIntValidator(20, 9999999),
-            setDelayTime,
             self.wFormLayout, self.wFormLayoutWidget
         )
 
@@ -131,6 +121,29 @@ class ControllerWindow(QWidget):
         self.chooseInputFile.clicked.connect(self.pick_input)
         self.wFormLayout.setWidget(
             5, QFormLayout.FieldRole, self.chooseInputFile
+        )
+
+        self.btnApply = QPushButton(self)
+        self.btnApply.setText("Áp dụng")
+        self.btnApply.setGeometry(5, 220, 230, 25)
+        self.btnApply.clicked.connect(self.applySettings)
+
+        self.infoSeperator = QFrame(self)
+        self.infoSeperator.setGeometry(0, 250, 240, 5)
+        self.infoSeperator.setFrameShape(QFrame.HLine)
+        self.infoSeperator.setFrameShadow(QFrame.Sunken)
+
+        self.wInfoLayoutWidget = QWidget(self)
+        self.wInfoLayoutWidget.setGeometry(0, 260, 240, 300)
+        self.wInfoLayout = QFormLayout(self.wInfoLayoutWidget)
+        self.wInfoLayout.setContentsMargins(5, 5, 5, 5)
+
+        self.labelCost, self.valCost = self._createInfo(
+            0, "Cost", "_", self.wInfoLayout, self.wInfoLayoutWidget
+        )
+
+        self.labelTimeCost, self.valTimeCost = self._createInfo(
+            1, "Duration", "_", self.wInfoLayout, self.wInfoLayoutWidget
         )
 
         # self.btnToggle3D = QPushButton(self)
@@ -152,6 +165,13 @@ class ControllerWindow(QWidget):
             self.btnToggleRun.setIcon(self.iconPause)
         else:
             self.btnToggleRun.setIcon(self.iconPlay)
+
+    def applySettings(self):
+        controller.gridSize = int(self.gridSize.text())
+        controller.delayTime = int(self.delayTime.text())
+        controller.setMapWidth(int(self.inpWidth.text()))
+        controller.setMapHeight(int(self.inpHeight.text()))
+        controller.winRenderer.update()
 
     def changeAlgo(self, v):
         controller.currentAlgo = int(v)
@@ -188,8 +208,30 @@ class ControllerWindow(QWidget):
 
             self.updateValuesFromState()
 
+    def setPfResult(self, cost, time):
+        self.valCost.setText(str(cost))
+        self.valTimeCost.setText('{:.2f}ms'.format(time * 1000))
+
+    def _createInfo(
+        self, index, text, valText, parent, container
+    ):
+        label = QLabel(container)
+        label.setText(text)
+        parent.setWidget(
+            index, QFormLayout.LabelRole, label
+        )
+
+        val = QLabel(container)
+        val.setText(valText)
+        val.setAlignment(Qt.AlignRight)
+        parent.setWidget(
+            index, QFormLayout.FieldRole, val
+        )
+
+        return label, val
+
     def _createLineInput(
-        self, index, text, inpText, validator, onUpdate, parent, container
+        self, index, text, inpText, validator, parent, container
     ):
         label = QLabel(container)
         label.setText(text)
@@ -201,9 +243,6 @@ class ControllerWindow(QWidget):
         inp.setText(inpText)
         inp.setAlignment(Qt.AlignRight)
         inp.setValidator(validator)
-        inp.returnPressed.connect(
-            lambda: onUpdate(inp.text())
-        )
         parent.setWidget(
             index, QFormLayout.FieldRole, inp
         )

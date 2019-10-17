@@ -4,14 +4,14 @@ from Map import Map
 from controller import controller
 
 
-def greedy(start, target, map: Map):
-
+def uniform_cost_search(start, target, map: Map):
     openList = set([start])
     closeList = set([])
 
     path = np.full(map.width * map.height, -1)
 
-    g = np.zeros(map.width * map.height)
+    g = np.full(map.width * map.height, float('Inf'))
+    g[map.toIndex(start)] = 0
 
     while len(openList) > 0:
 
@@ -21,9 +21,9 @@ def greedy(start, target, map: Map):
         minVal = float('Inf')
 
         for point in openList:
-            d = map.distance(point, target)
-            if d < minVal:
-                minVal = d
+            v = g[map.toIndex(point)]
+            if v < minVal:
+                minVal = v
                 thePoint = point
 
         if thePoint == target:
@@ -39,8 +39,11 @@ def greedy(start, target, map: Map):
         for point, cost in map.getNextPoints(thePoint):
             pI = map.toIndex(point)
             if point not in closeList:
-                path[pI] = tpI
-                g[pI] = g[tpI] + cost
-                openList.add(point)
+                alt = g[tpI] + cost
+                if alt < g[pI]:
+                    g[pI] = alt
+                    path[pI] = tpI
+                if point not in openList:
+                    openList.add(point)
 
     return -1

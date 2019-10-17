@@ -1,4 +1,5 @@
 import threading
+from time import time
 from PyQt5.QtCore import QTimer
 
 from Map import Map
@@ -17,15 +18,13 @@ class _Controller:
         self.gridSize = 20
         self.algorithms = []
         self.currentAlgo = 0
-        self.delayTime = 100
+        self.delayTime = 50
         self.running = False
 
         self.started = False
         self.finished = False
 
         self.map = a
-        self.emitters = []
-
         self.states = []
         self.paths = []
         self.currentStateIndex = -1
@@ -42,8 +41,7 @@ class _Controller:
         self.agent = threading.Thread(
             name='Agents',
             daemon=True,
-            target=self.algorithms[self.currentAlgo]['func'],
-            args=(self.map,)
+            target=self.doPF
         )
 
         self.started = True
@@ -53,9 +51,46 @@ class _Controller:
         self.agent.start()
         self.update()
 
-    def pfEnd(self):
+    def doPF(self):
+        startTime = time()
+        cost = 0
+
+        pf = self.algorithms[self.currentAlgo]['func']
+        start = self.map.startPoint
+        target = self.map.targetPoint
+        pas = self.map.passPoint.copy()
+
+        while len(pas) > 0:
+            pI = -1
+            minV = float('Inf')
+            for i in range(len(pas)):
+                d = self.map.distance(start, pas[i])
+                if d < minV:
+                    minV = d
+                    pI = i
+
+            c = pf(start, pas[pI], self.map)
+            start = pas[pI]
+            pas.pop(pI)
+
+            if c == -1:
+                return self.pfEnd(-1, time() - startTime)
+            else:
+                cost += c
+
+        c = pf(start, target, self.map)
+        if c == -1:
+            return self.pfEnd(-1, time() - startTime)
+        else:
+            cost += c
+
+        self.pfEnd(cost, time() - startTime)
+
+    def pfEnd(self, cost=None, duration=None):
         if self.started:
             self.finished = True
+            if cost is not None and duration is not None:
+                self.winController.setPfResult(cost, duration)
 
     def update(self):
 
@@ -73,7 +108,13 @@ class _Controller:
             self.timer.start(self.delayTime)
 
     def setNewInput(self, inp: str):
-        self.pfTerminate()
+        self.pfEnd()
+        self.running = False
+        self.started = False
+        self.finished = False
+        self.states = []
+        self.paths = []
+        self.currentStateIndex = -1
         self.map = Map(inp)
 
     def pfAddState(self, states=None, path=None):
@@ -94,15 +135,19 @@ class _Controller:
 
     def getPfPaths(self):
         return self.paths
+        # if self.currentStateIndex == len(self.states) - 1 and len(self.states) > 0:
+        #     return self.paths
+        # else:
+        #     return []
 
     def debugStepForward(self):
-        if self.started and not self.running and self.currentStateIndex < len(self.states) - 1:
+        if self.currentStateIndex < len(self.states) - 1:
 
             self.currentStateIndex += 1
             self.winRenderer.update()
 
     def debugStepBackward(self):
-        if self.started and not self.running and self.currentStateIndex > 0:
+        if self.currentStateIndex > 0:
 
             self.currentStateIndex -= 1
             self.winRenderer.update()
@@ -128,6 +173,18 @@ class _Controller:
         })
 
         print(name)
+
+    def resolvePath(self, path, target):
+        resultPath = []
+
+        i = self.map.toIndex(target)
+        while True:
+            resultPath.append(self.map.toPoint(i))
+            i = path[i]
+            if i == -1:
+                break
+
+        return resultPath
 
 
 controller = _Controller()
