@@ -1,4 +1,4 @@
-import store
-import Dijkstra
+from controller import controller
+from .greedy import greedy
 
-store.addAlgorithm('BFS', Dijkstra.Dijkstra)
+controller.addAlgorithm('Greedy', greedy)

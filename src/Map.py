@@ -5,15 +5,13 @@ from typing import List, Tuple
 Point = Tuple[int, int]
 
 
-AIR       = 0
-WALL      = 1
-START     = 2
-DEST      = 3
-PASSENGER = 4
-VISITED   = 5
-WALKED    = 6
+AIR     = False
+WALL    = True
 
-_strEvq = ['.', '#', 'S', 'D', 'P', 'V', 'W']
+delta = [
+    (1, 0, 1), (0, 1, 1), (-1, 0, 1), (0, -1, 1),
+    (1, 1, 1.5), (1, -1, 1.5), (-1, 1, 1.5), (-1, -1, 1.5)
+]
 
 
 class Map:
@@ -27,7 +25,7 @@ class Map:
         self.map = np.full([self.width * self.height], AIR)
 
         points = self._getPoints(lines[1])
-        self.srcPoint, self.destPoint, *self.pasPoint = points
+        self.startPoint, self.targetPoint, *self.passPoint = points
 
         self.polygons = []
         for i in range(int(lines[2])):
@@ -41,11 +39,6 @@ class Map:
 
         self.map = np.full([self.width * self.height], AIR)
 
-        self[self.srcPoint] = START
-        self[self.destPoint] = DEST
-        for p in self.pasPoint:
-            self[p] = PASSENGER
-
         for points in self.polygons:
             self._verticiesToMatrix(points)
 
@@ -54,6 +47,21 @@ class Map:
 
     def restore(self) -> None:
         self.map = self.backup
+
+    def getNextPoints(self, point: Point):
+        result = []
+        x, y = point
+        for dx, dy, cost in delta:
+            aX, aY = x + dx, y + dy
+            if self[aX, aY] != WALL:
+                result.append((aX, aY, cost))
+
+        return result
+
+    def distance(self, pointA: Point, pointB: Point):
+        x1, y1 = pointA
+        x2, y2 = pointB
+        return abs(x1 - x2) + abs(y1 - y2)
 
     def _verticiesToMatrix(self, verticies: List[Point]) -> None:
 
@@ -127,6 +135,12 @@ class Map:
 
         return results
 
+    def toIndex(self, point: Point) -> int:
+        return point[0] + point[1] * self.width
+
+    def toPoint(self, index) -> Point:
+        return index % self.width, index // self.width
+
     # Overloading [] operator
 
     def __getitem__(self, key):
@@ -143,15 +157,3 @@ class Map:
 
         if 0 <= i < len(self.map):
             self.map[i] = value
-
-    # Overload to string
-    def __str__(self):
-
-        result = ""
-        for i in range(len(self.map)):
-            if i % self.width == 0:
-                result += "\n"
-
-            result += _strEvq[self.map[i]]
-
-        return result

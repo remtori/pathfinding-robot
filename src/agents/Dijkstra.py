@@ -1,2 +1,0 @@
-def Dijkstra(map):
-    pass

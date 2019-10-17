@@ -1,9 +1,8 @@
-from PyQt5.QtCore import QTimer
 from PyQt5.QtGui import QPainter, QColor
 from PyQt5.QtWidgets import QWidget
 
-from store import state
-from Map import AIR
+from controller import controller
+from Map import WALL
 
 
 class RenderWindow(QWidget):
@@ -16,17 +15,16 @@ class RenderWindow(QWidget):
 
         self.offsetX = 0
         self.offsetY = 0
-        self.timer = QTimer(self)
-        self.timer.timeout.connect(self.update)
-        self.mapDataToColor = [
-            None,
-            QColor(145, 145, 145),
-            QColor(0, 255, 0),
-            QColor(255, 0, 0),
-            QColor(3, 252, 244),
-            QColor("#afeeee"),
-            QColor("#98fb98")
-        ]
+
+        self.colors = {
+            'WALL': QColor(145, 145, 145),
+            'START': QColor(0, 255, 0),
+            'TARGET': QColor(255, 0, 0),
+            'PASSENGER': QColor(3, 252, 244),
+            'OPEN': QColor("#4287f5"),
+            'CLOSE': QColor("#02cf21")
+        }
+
         self.painter = QPainter()
         self.show()
 
@@ -34,18 +32,30 @@ class RenderWindow(QWidget):
         qp = self.painter
         qp.begin(self)
 
-        gs = state.gridSize
-        h = (state.map.height + 1) * gs
-        w = (state.map.width + 1) * gs
+        m = controller.map
+        gs = controller.gridSize
+        h = (m.height + 1) * gs
+        w = (m.width + 1) * gs
 
-        for x in range(state.map.width + 1):
-            for y in range(state.map.height + 1):
-                if state.map[x, y] != AIR:
+        c = self.colors['WALL']
+
+        for x in range(m.width + 1):
+            for y in range(m.height + 1):
+                if m[x, y] == WALL:
                     qp.fillRect(
                         x * gs, y * gs,
                         gs, gs,
-                        self.mapDataToColor[state.map[x, y]]
+                        c
                     )
+
+        openList, closeList = controller.getPfList()
+
+        self.drawPoints(openList, 'OPEN')
+        self.drawPoints(closeList, 'CLOSE')
+
+        self.drawPoints([m.startPoint], 'START')
+        self.drawPoints([m.targetPoint], 'TARGET')
+        self.drawPoints(m.passPoint, 'PASSENGER')
 
         for x in range(0, w + 2, gs):
             qp.drawLine(x, 0, x, h)
@@ -54,4 +64,14 @@ class RenderWindow(QWidget):
             qp.drawLine(0, y, w, y)
 
         qp.end()
-        self.timer.start(100)
+
+    def drawPoints(self, points, color):
+        gs = controller.gridSize
+        c = self.colors[color]
+
+        for p in points:
+            self.painter.fillRect(
+                p[0] * gs,
+                p[1] * gs,
+                gs, gs, c
+            )

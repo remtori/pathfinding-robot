@@ -1,5 +1,5 @@
 from PyQt5.QtCore import Qt, QCoreApplication
-from PyQt5.QtGui import QIntValidator, QDoubleValidator, QIcon
+from PyQt5.QtGui import QIntValidator, QIcon
 from PyQt5.QtWidgets import (
     QComboBox,
     QLabel,
@@ -13,8 +13,7 @@ from PyQt5.QtWidgets import (
     QWidget
 )
 
-from .RenderWindow import RenderWindow
-from store import state
+from controller import controller
 
 
 class ControllerWindow(QWidget):
@@ -26,10 +25,9 @@ class ControllerWindow(QWidget):
         self.setGeometry(1060, 100, 240, 540)
 
         self.initUI()
+        self.show()
 
     def initUI(self):
-
-        self.renderWin = RenderWindow()
 
         self.wHLayoutWidget = QWidget(self)
         self.wHLayoutWidget.setGeometry(0, 0, 240, 50)
@@ -39,7 +37,7 @@ class ControllerWindow(QWidget):
         self.btnStepBackward = QToolButton(self.wHLayoutWidget)
         self.btnStepBackward.setIcon(QIcon("./assets/icons/step-backward.svg"))
         self.btnStepBackward.setToolTip("Quay lại bước trước")
-        # self.btnStepBackward.clicked.connect(self.step_backward)
+        self.btnStepBackward.clicked.connect(controller.debugStepBackward)
         self.wHLayout.addWidget(self.btnStepBackward)
 
         self.iconPlay = QIcon("./assets/icons/play.svg")
@@ -54,14 +52,8 @@ class ControllerWindow(QWidget):
         self.btnStepForward = QToolButton(self.wHLayoutWidget)
         self.btnStepForward.setIcon(QIcon("./assets/icons/step-forward.svg"))
         self.btnStepForward.setToolTip("Bước tới một bước")
-        # self.btnStepForward.clicked.connect(self.step_forward)
+        self.btnStepForward.clicked.connect(controller.debugStepForward)
         self.wHLayout.addWidget(self.btnStepForward)
-
-        self.btnReset = QToolButton(self.wHLayoutWidget)
-        self.btnReset.setIcon(QIcon("./assets/icons/sync.svg"))
-        self.btnReset.setToolTip("Khởi động lại quá trình tìm kiếm")
-        # self.btnReset.clicked.connect(self.reset)
-        self.wHLayout.addWidget(self.btnReset)
 
         self.btnStop = QToolButton(self.wHLayoutWidget)
         self.btnStop.setIcon(QIcon("./assets/icons/times.svg"))
@@ -84,39 +76,47 @@ class ControllerWindow(QWidget):
         self.wFormLayout.setWidget(0, QFormLayout.LabelRole, self.labelAlg)
 
         self.algorithmChoice = QComboBox(self.wFormLayoutWidget)
-        self.algorithmChoice.addItem("A-Star")
-        self.algorithmChoice.addItem("Dijkstra")
-        self.algorithmChoice.addItem("BFS")
-        self.algorithmChoice.currentIndexChanged.connect(state.setCurrentAlgo)
+
+        for algo in controller.algorithms:
+            self.algorithmChoice.addItem(algo['name'])
+
+        self.algorithmChoice.currentIndexChanged.connect(self.changeAlgo)
+
         self.wFormLayout.setWidget(
             0, QFormLayout.FieldRole, self.algorithmChoice
         )
 
+        def setGridSize(v):
+            controller.gridSize = int(v)
+
         self.labelGS, self.gridSize = self._createLineInput(
             1, "Độ rộng mỗi ô", "20",
-            QIntValidator(1, 999),
-            state.setGridSize,
+            QIntValidator(1, 9999999),
+            setGridSize,
             self.wFormLayout, self.wFormLayoutWidget
         )
 
         self.labelWidth, self.inpWidth = self._createLineInput(
             2, "Số ô ngang", "20",
-            QIntValidator(1, 999),
-            state.setWidth,
+            QIntValidator(1, 9999999),
+            controller.setMapWidth,
             self.wFormLayout, self.wFormLayoutWidget
         )
 
         self.labelHeight, self.inpHeight = self._createLineInput(
             3, "Số ô dọc", "20",
-            QIntValidator(1, 999),
-            state.setHeight,
+            QIntValidator(1, 9999999),
+            controller.setMapHeight,
             self.wFormLayout, self.wFormLayoutWidget
         )
 
+        def setDelayTime(v):
+            controller.delayTime = int(v)
+
         self.labelDelayTime, self.delayTime = self._createLineInput(
-            4, "Thời gian đợi", "1.00",
-            QDoubleValidator(0.0, 999.0, 2),
-            state.setDelayTime,
+            4, "Thời gian đợi", "100",
+            QIntValidator(20, 9999999),
+            setDelayTime,
             self.wFormLayout, self.wFormLayoutWidget
         )
 
@@ -133,20 +133,60 @@ class ControllerWindow(QWidget):
             5, QFormLayout.FieldRole, self.chooseInputFile
         )
 
-        self.btnToggle3D = QPushButton(self)
-        self.btnToggle3D.setText("Đổi sang chế độ 3D")
-        self.btnToggle3D.setGeometry(5, 510, 230, 25)
+        # self.btnToggle3D = QPushButton(self)
+        # self.btnToggle3D.setText("Đổi sang chế độ 3D")
+        # self.btnToggle3D.setGeometry(5, 510, 230, 25)
         # self.btnToggle3D.clicked.connect(self.toggle_3D)
 
         self.updateValuesFromState()
 
     def updateValuesFromState(self):
         self.inpWidth.setText(
-            str(state.map.width)
+            str(controller.map.width)
         )
         self.inpHeight.setText(
-            str(state.map.height)
+            str(controller.map.height)
         )
+
+        if controller.running:
+            self.btnToggleRun.setIcon(self.iconPause)
+        else:
+            self.btnToggleRun.setIcon(self.iconPlay)
+
+    def changeAlgo(self, v):
+        controller.currentAlgo = int(v)
+
+    def toggleRun(self):
+        newV = not controller.running
+
+        if newV:
+            self.btnToggleRun.setIcon(self.iconPause)
+        else:
+            self.btnToggleRun.setIcon(self.iconPlay)
+
+        controller.running = newV
+        if newV and controller.started:
+            controller.update()
+
+        if not controller.started and newV is True:
+            controller.pfStart()
+
+    def pick_input(self):
+
+        filename, _ = QFileDialog.getOpenFileName(
+            None,
+            "Chọn file Input",
+            "",
+            "All Files (*);;Text Files (*.txt)"
+        )
+        if filename:
+            inp = open(filename, "r")
+
+            controller.setNewInput(
+                ''.join([line for line in inp.readlines()])
+            )
+
+            self.updateValuesFromState()
 
     def _createLineInput(
         self, index, text, inpText, validator, onUpdate, parent, container
@@ -169,29 +209,3 @@ class ControllerWindow(QWidget):
         )
 
         return label, inp
-
-    def toggleRun(self):
-        newV = not state.running
-        if newV:
-            self.btnToggleRun.setIcon(self.iconPause)
-        else:
-            self.btnToggleRun.setIcon(self.iconPlay)
-
-        state.setRunning(newV)
-
-    def pick_input(self):
-
-        filename, _ = QFileDialog.getOpenFileName(
-            None,
-            "Chọn file Input",
-            "",
-            "All Files (*);;Text Files (*.txt)"
-        )
-        if filename:
-            inp = open(filename, "r")
-
-            state.setInput(
-                ''.join([line for line in inp.readlines()])
-            )
-
-            self.updateValuesFromState()
