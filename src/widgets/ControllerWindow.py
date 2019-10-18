@@ -86,26 +86,20 @@ class ControllerWindow(QWidget):
             0, QFormLayout.FieldRole, self.algorithmChoice
         )
 
-        self.labelGS, self.gridSize = self._createLineInput(
-            1, "Độ rộng mỗi ô", "20",
-            QIntValidator(1, 9999999),
-            self.wFormLayout, self.wFormLayoutWidget
-        )
-
         self.labelWidth, self.inpWidth = self._createLineInput(
-            2, "Số ô ngang", "20",
+            1, "Số ô ngang", "20",
             QIntValidator(1, 9999999),
             self.wFormLayout, self.wFormLayoutWidget
         )
 
         self.labelHeight, self.inpHeight = self._createLineInput(
-            3, "Số ô dọc", "20",
+            2, "Số ô dọc", "20",
             QIntValidator(1, 9999999),
             self.wFormLayout, self.wFormLayoutWidget
         )
 
         self.labelDelayTime, self.delayTime = self._createLineInput(
-            4, "Thời gian đợi", "50",
+            3, "Thời gian đợi", "50",
             QIntValidator(20, 9999999),
             self.wFormLayout, self.wFormLayoutWidget
         )
@@ -113,14 +107,14 @@ class ControllerWindow(QWidget):
         self.labelInput = QLabel(self.wFormLayoutWidget)
         self.labelInput.setText("Input")
         self.wFormLayout.setWidget(
-            5, QFormLayout.LabelRole, self.labelInput
+            4, QFormLayout.LabelRole, self.labelInput
         )
 
         self.chooseInputFile = QPushButton(self.wFormLayoutWidget)
         self.chooseInputFile.setText("Chọn File")
         self.chooseInputFile.clicked.connect(self.pick_input)
         self.wFormLayout.setWidget(
-            5, QFormLayout.FieldRole, self.chooseInputFile
+            4, QFormLayout.FieldRole, self.chooseInputFile
         )
 
         self.btnApply = QPushButton(self)
@@ -167,7 +161,6 @@ class ControllerWindow(QWidget):
             self.btnToggleRun.setIcon(self.iconPlay)
 
     def applySettings(self):
-        controller.gridSize = int(self.gridSize.text())
         controller.delayTime = int(self.delayTime.text())
         controller.setMapWidth(int(self.inpWidth.text()))
         controller.setMapHeight(int(self.inpHeight.text()))
@@ -207,6 +200,7 @@ class ControllerWindow(QWidget):
             )
 
             self.updateValuesFromState()
+            controller.winRenderer.update()
 
     def setPfResult(self, cost, time):
         self.valCost.setText(str(cost))

@@ -1,6 +1,7 @@
 from PyQt5.QtGui import QPainter, QColor, QPen
 from PyQt5.QtWidgets import QWidget
 from PyQt5.QtCore import Qt
+
 import math
 
 from controller import controller
@@ -15,8 +16,10 @@ class RenderWindow(QWidget):
         self.setWindowTitle("AI - Path Finding")
         self.setGeometry(50, 100, 960, 540)
 
-        self.offsetX = 0
-        self.offsetY = 0
+        self.screenOffsetX = 0
+        self.screenOffsetY = 0
+        self.viewPort = 0, 0, 960, 540
+        self.scale = 1.0
 
         self.colors = {
             'WALL': QColor(145, 145, 145),
@@ -30,21 +33,34 @@ class RenderWindow(QWidget):
         self.painter = QPainter()
         self.show()
 
+    def updateViewPort(self):
+        lX, lY = self.screenToWorld(0, 0)
+        hX, hY = self.screenToWorld(self.width(), self.height())
+        self.viewPort = int(lX), int(lY), int(hX), int(hY)
+
     def paintEvent(self, e):
+        self.updateViewPort()
         qp = self.painter
         qp.begin(self)
 
+        lX, lY, hX, hY = self.viewPort
         m = controller.map
         gs = controller.gridSize
-        h = (m.height + 1) * gs
         w = (m.width + 1) * gs
+        h = (m.height + 1) * gs
 
         c = self.colors['WALL']
 
-        for x in range(m.width + 1):
-            for y in range(m.height + 1):
+        for x in range(
+            max(0, lX // gs - 2),
+            min(m.width + 1, hX // gs + 2)
+        ):
+            for y in range(
+                max(0, lY // gs - 2),
+                min(m.height + 1, hY // gs + 2)
+            ):
                 if m[x, y] == WALL:
-                    qp.fillRect(
+                    self.qpFillRect(
                         x * gs, y * gs,
                         gs, gs,
                         c
@@ -59,11 +75,19 @@ class RenderWindow(QWidget):
         self.drawPoints([m.targetPoint], 'TARGET')
         self.drawPoints(m.passPoint, 'PASSENGER')
 
-        for x in range(0, w + 2, gs):
-            qp.drawLine(x, 0, x, h)
+        for x in range(
+            max(0, lX - lX % gs),
+            min(w + 2, hX),
+            gs
+        ):
+            self.qpDrawLine(x, 0, x, h)
 
-        for y in range(0, h + 2, gs):
-            qp.drawLine(0, y, w, y)
+        for y in range(
+            max(0, lY - lY % gs),
+            min(h + 2, hY),
+            gs
+        ):
+            self.qpDrawLine(0, y, w, y)
 
         self.drawPath(controller.getPfPaths())
 
@@ -73,21 +97,24 @@ class RenderWindow(QWidget):
         gs = controller.gridSize
         c = self.colors[color]
 
-        for p in points:
-            self.painter.fillRect(
-                p[0] * gs,
-                p[1] * gs,
-                gs, gs, c
-            )
+        lX, lY, hX, hY = self.viewPort
+
+        for x, y in points:
+            pX = x * gs
+            pY = y * gs
+            if lX - gs <= pX <= hX + gs and lY - gs <= pY <= hY + gs:
+                self.qpFillRect(
+                    pX, pY,
+                    gs, gs, c
+                )
 
     def drawPath(self, paths):
-        qp = self.painter
 
         pen = QPen(QColor('#000000'))
         pen.setStyle(Qt.DashLine)
         pen.setDashPattern([10, 4])
 
-        qp.setPen(pen)
+        self.painter.setPen(pen)
 
         gs = controller.gridSize
 
@@ -107,9 +134,65 @@ class RenderWindow(QWidget):
                 vx = vx * 2 + gs / 2
                 vy = vy * 2 + gs / 2
 
-                qp.drawLine(
+                self.qpDrawLine(
                     a[0] * gs + vx, a[1] * gs + vy,
                     b[0] * gs + vx, b[1] * gs + vy
                 )
 
-        qp.setPen(Qt.SolidLine)
+        self.painter.setPen(Qt.SolidLine)
+
+    # Event Handler
+    def mouseMoveEvent(self, event):
+        self.screenOffsetX = self.storedOX + (self.mouseDownX - event.x()) / self.scale
+        self.screenOffsetY = self.storedOY + (self.mouseDownY - event.y()) / self.scale
+
+        event.accept()
+        self.update()
+
+    def mousePressEvent(self, event):
+
+        self.mouseDownX = event.x()
+        self.mouseDownY = event.y()
+        self.storedOX = self.screenOffsetX
+        self.storedOY = self.screenOffsetY
+
+        event.accept()
+
+    def wheelEvent(self, event):
+
+        mouseBeforeX, mouseBeforeY = self.screenToWorld(event.x(), event.y())
+
+        if event.angleDelta().y() > 0:
+            self.scale *= 1.05
+        else:
+            self.scale *= 0.95
+
+        mouseAfterX, mouseAfterY = self.screenToWorld(event.x(), event.y())
+        self.screenOffsetX += (mouseBeforeX - mouseAfterX)
+        self.screenOffsetY += (mouseBeforeY - mouseAfterY)
+
+        event.accept()
+        self.update()
+
+    # World to Screen transform
+    def worldToScreen(self, x, y):
+        rX = (x - self.screenOffsetX) * self.scale
+        rY = (y - self.screenOffsetY) * self.scale
+        return rX, rY
+
+    def screenToWorld(self, x, y):
+        rX = (x / self.scale) + self.screenOffsetX
+        rY = (y / self.scale) + self.screenOffsetY
+        return rX, rY
+
+    def qpFillRect(self, x, y, w, h, c):
+        p = self.worldToScreen(x, y)
+        w, h = w * self.scale, h * self.scale
+
+        self.painter.fillRect(*p, w, h, c)
+
+    def qpDrawLine(self, x1, y1, x2, y2):
+        p1 = self.worldToScreen(x1, y1)
+        p2 = self.worldToScreen(x2, y2)
+
+        self.painter.drawLine(*p1, *p2)
