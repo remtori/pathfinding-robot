@@ -87,19 +87,19 @@ class ControllerWindow(QWidget):
         )
 
         self.labelWidth, self.inpWidth = self._createLineInput(
-            1, "Số ô ngang", "20",
+            1, "Số ô ngang",
             QIntValidator(1, 9999999),
             self.wFormLayout, self.wFormLayoutWidget
         )
 
         self.labelHeight, self.inpHeight = self._createLineInput(
-            2, "Số ô dọc", "20",
+            2, "Số ô dọc",
             QIntValidator(1, 9999999),
             self.wFormLayout, self.wFormLayoutWidget
         )
 
         self.labelDelayTime, self.delayTime = self._createLineInput(
-            3, "Thời gian đợi", "50",
+            3, "Thời gian đợi",
             QIntValidator(20, 9999999),
             self.wFormLayout, self.wFormLayoutWidget
         )
@@ -154,6 +154,9 @@ class ControllerWindow(QWidget):
         self.inpHeight.setText(
             str(controller.map.height)
         )
+        self.delayTime.setText(
+            str(controller.delayTime)
+        )
 
         if controller.running:
             self.btnToggleRun.setIcon(self.iconPause)
@@ -204,7 +207,7 @@ class ControllerWindow(QWidget):
 
     def setPfResult(self, cost, time):
         self.valCost.setText(str(cost))
-        self.valTimeCost.setText('{:.2f}ms'.format(time * 1000))
+        self.valTimeCost.setText(str(time))
 
     def _createInfo(
         self, index, text, valText, parent, container
@@ -225,7 +228,7 @@ class ControllerWindow(QWidget):
         return label, val
 
     def _createLineInput(
-        self, index, text, inpText, validator, parent, container
+        self, index, text, validator, parent, container
     ):
         label = QLabel(container)
         label.setText(text)
@@ -234,7 +237,6 @@ class ControllerWindow(QWidget):
         )
 
         inp = QLineEdit(container)
-        inp.setText(inpText)
         inp.setAlignment(Qt.AlignRight)
         inp.setValidator(validator)
         parent.setWidget(

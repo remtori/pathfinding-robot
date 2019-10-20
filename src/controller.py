@@ -1,4 +1,5 @@
 import threading
+from collections import deque
 from time import time
 from PyQt5.QtCore import QTimer
 
@@ -18,14 +19,14 @@ class _Controller:
         self.gridSize = 20
         self.algorithms = []
         self.currentAlgo = 0
-        self.delayTime = 50
+        self.delayTime = 10
         self.running = False
 
         self.started = False
         self.finished = False
 
         self.map = a
-        self.states = []
+        self.states = deque()
         self.paths = []
         self.currentStateIndex = -1
 
@@ -34,9 +35,11 @@ class _Controller:
         self.timer.timeout.connect(self.update)
 
     def pfStart(self):
-        self.states = []
+        self.states = deque()
         self.paths = []
         self.currentStateIndex = -1
+
+        self.winController.setPfResult('_', '_')
 
         self.agent = threading.Thread(
             name='Agents',
@@ -90,12 +93,17 @@ class _Controller:
         if self.started:
             self.finished = True
             if cost is not None and duration is not None:
-                self.winController.setPfResult(cost, duration)
+                self.winController.setPfResult(cost, '{:.2f}ms'.format(duration * 1000))
 
     def update(self):
 
         if self.currentStateIndex < len(self.states) - 1:
-            self.currentStateIndex += 1
+            if self.map.width * self.map.height > 10000:
+                while len(self.states) > 1:
+                    self.states.popleft()
+            else:
+                self.currentStateIndex += 1
+
         elif self.finished:
             self.running = False
             self.started = False
@@ -112,7 +120,7 @@ class _Controller:
         self.running = False
         self.started = False
         self.finished = False
-        self.states = []
+        self.states = deque()
         self.paths = []
         self.currentStateIndex = -1
         self.map = Map(inp)
@@ -121,34 +129,28 @@ class _Controller:
 
         if states is not None:
             self.states.append(states)
+            if self.currentStateIndex < 0:
+                self.currentStateIndex = 0
 
         if path is not None:
             self.paths.append(path)
 
     def getPfList(self):
-        if self.currentStateIndex > 0:
-            return self.states[
-                self.currentStateIndex
-            ]
+        if self.currentStateIndex >= 0:
+            return self.states[self.currentStateIndex]
 
         return [], []
 
     def getPfPaths(self):
         return self.paths
-        # if self.currentStateIndex == len(self.states) - 1 and len(self.states) > 0:
-        #     return self.paths
-        # else:
-        #     return []
 
     def debugStepForward(self):
         if self.currentStateIndex < len(self.states) - 1:
-
             self.currentStateIndex += 1
             self.winRenderer.update()
 
     def debugStepBackward(self):
         if self.currentStateIndex > 0:
-
             self.currentStateIndex -= 1
             self.winRenderer.update()
 
